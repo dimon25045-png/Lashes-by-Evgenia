@@ -1,0 +1,1410 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="format-detection" content="telephone=no">
+<title>Запись на наращивание ресниц</title>
+<!-- Telegram WebApp SDK — обязательно в <head> -->
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<!-- Supabase JS v2 (только для чтения публичного расписания) -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+/* ═══ Цвета: фон/текст из темы Telegram, акцент — фирменный пудрово-розовый ═══ */
+:root{
+  --fb-bg:#fbf4f7; --fb-card:#ffffff; --fb-text:#2a1f25; --fb-hint:#8f8489;
+  --accent:#d63384; --accent-2:#f06aa8;
+  --accent-soft:rgba(214,51,132,.10); --accent-line:rgba(214,51,132,.28);
+  --ok:#2f9e6b; --line:rgba(127,127,127,.18);
+  --r:18px; --r-sm:14px;
+  --shadow:0 2px 12px rgba(90,20,55,.06),0 1px 2px rgba(90,20,55,.05);
+}
+@media (prefers-color-scheme:dark){ :root{ --fb-bg:#141013; --fb-card:#1f191d; --fb-text:#f3eaf0; --fb-hint:#9b8f96; } }
+:root{
+  --bg:var(--tg-theme-secondary-bg-color,var(--fb-bg));
+  --card:var(--tg-theme-section-bg-color,var(--tg-theme-bg-color,var(--fb-card)));
+  --text:var(--tg-theme-text-color,var(--fb-text));
+  --hint:var(--tg-theme-hint-color,var(--fb-hint));
+  --link:var(--tg-theme-link-color,var(--accent));
+  --danger:var(--tg-theme-destructive-text-color,#e5484d);
+}
+[data-scheme=dark]{ --shadow:none; --accent-soft:rgba(240,106,168,.16); --accent-line:rgba(240,106,168,.35); --line:rgba(255,255,255,.09); }
+
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--text);
+  font:15px/1.42 -apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,Inter,Arial,sans-serif;}
+body{min-height:100vh;overscroll-behavior-y:none}
+a{color:var(--link);text-decoration:none}
+[hidden]{display:none!important}
+.app{max-width:560px;margin:0 auto;padding:10px 14px calc(28px + env(safe-area-inset-bottom))}
+body.has-nav .app{padding-bottom:calc(92px + env(safe-area-inset-bottom))}
+.hint{color:var(--hint);font-size:13px}
+.center{text-align:center}
+
+/* ─── Шапка ─── */
+.hero{padding:10px 4px 4px}
+.hero .hi{color:var(--accent);font-weight:600;font-size:14px}
+.hero h1{font-size:25px;line-height:1.15;margin:4px 0 4px;letter-spacing:-.02em}
+.hero p{margin:0;color:var(--hint)}
+.banner{background:var(--accent-soft);border:1px solid var(--accent-line);border-radius:var(--r-sm);padding:12px 14px;margin:10px 0;font-size:14px}
+
+/* ─── Карточки ─── */
+.card{background:var(--card);border-radius:var(--r);padding:16px;margin:12px 0;box-shadow:var(--shadow)}
+.h2{font-size:17px;font-weight:700;display:flex;align-items:center;gap:9px;margin:0 0 12px}
+.num{width:24px;height:24px;border-radius:50%;background:var(--accent);color:#fff;font-size:13px;display:grid;place-items:center;flex:none}
+.h2 .opt-label{margin-left:auto;font-size:12px;font-weight:500;color:var(--hint)}
+
+/* ─── Кнопки ─── */
+.btn{appearance:none;border:0;border-radius:var(--r-sm);padding:12px 14px;font:inherit;font-weight:600;cursor:pointer;
+  background:var(--accent);color:#fff;display:inline-flex;align-items:center;justify-content:center;gap:6px;transition:transform .08s,opacity .2s;text-align:center}
+.btn:active{transform:scale(.97)}
+.btn:disabled{opacity:.45;cursor:default}
+.btn.secondary{background:var(--accent-soft);color:var(--accent)}
+.btn.ghost{background:transparent;color:var(--accent);border:1.5px solid var(--accent-line)}
+.btn.danger{background:rgba(229,72,77,.1);color:var(--danger)}
+.btn.danger-solid{background:var(--danger);color:#fff}
+.btn.ok-solid{background:var(--ok);color:#fff}
+.btn.block{width:100%;display:flex}
+.btn.sm{padding:9px 11px;font-size:13.5px;border-radius:11px}
+.btn.big{padding:15px;font-size:16px}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.row>.btn{flex:1 1 auto}
+.icon-btn{border:0;background:var(--accent-soft);color:var(--accent);width:40px;height:40px;border-radius:12px;font-size:19px;font-weight:700;cursor:pointer}
+
+/* ─── Студия ─── */
+.studio .line{display:flex;gap:10px;align-items:flex-start;margin:6px 0}
+.studio .line span:first-child{width:22px;flex:none;text-align:center}
+.memo{background:var(--accent-soft);border-radius:12px;padding:10px 12px;margin-top:12px;font-size:13.5px}
+
+/* ─── Ваша запись ─── */
+.mine{background:linear-gradient(135deg,#d63384 0%,#ee5fa0 100%);color:#fff;box-shadow:0 8px 24px rgba(214,51,132,.28)}
+.mine .h2{color:#fff}
+.bk{background:rgba(255,255,255,.16);border-radius:14px;padding:12px;margin-top:10px}
+.bk-when{font-size:16px}
+.bk-what{opacity:.92;font-size:14px;margin-top:2px}
+.bk-note{font-size:13px;opacity:.95;margin-top:10px}
+.btn.white{background:#fff;color:#c2256f}
+.btn.glass{background:rgba(255,255,255,.22);color:#fff}
+
+/* ─── Услуги ─── */
+.services{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.svc{position:relative;border:1.5px solid var(--line);border-radius:16px;padding:12px;background:var(--card);
+  text-align:left;font:inherit;color:inherit;cursor:pointer;transition:border-color .15s,background .15s;
+  display:flex;flex-direction:column;justify-content:flex-start}
+.svc.wide{grid-column:1/-1}
+.svc .name{font-weight:700;font-size:16px;padding-right:24px}
+.svc .dur{color:var(--hint);font-size:12.5px}
+.svc .desc{color:var(--hint);font-size:12.5px;margin-top:4px;line-height:1.3}
+.svc .price{font-weight:700;color:var(--accent);margin-top:auto;padding-top:8px;font-size:15.5px}
+.svc.on{border-color:var(--accent);background:var(--accent-soft)}
+.svc.on::after{content:"✓";position:absolute;top:10px;right:10px;width:22px;height:22px;border-radius:50%;
+  background:var(--accent);color:#fff;display:grid;place-items:center;font-size:13px;font-weight:700}
+
+/* ─── Доп. опции ─── */
+.opt{display:flex;align-items:center;gap:12px;width:100%;padding:12px;border:1.5px solid var(--line);border-radius:14px;
+  background:var(--card);margin-bottom:8px;font:inherit;color:inherit;text-align:left;cursor:pointer}
+.opt:last-child{margin-bottom:0}
+.opt .dot{width:20px;height:20px;border-radius:50%;border:2px solid var(--hint);flex:none}
+.opt small{display:block;color:var(--hint);font-size:12.5px}
+.opt .p{margin-left:auto;font-weight:600;color:var(--hint);white-space:nowrap}
+.opt.on{border-color:var(--accent);background:var(--accent-soft)}
+.opt.on .dot{border-color:var(--accent);background:radial-gradient(var(--accent) 42%,transparent 48%)}
+.opt.on .p{color:var(--accent)}
+.hint-box{background:var(--accent-soft);border-radius:12px;padding:12px;font-size:14px}
+
+/* ─── Дни и время ─── */
+.days{display:flex;gap:8px;overflow-x:auto;margin:0 -16px;padding:2px 16px 10px;scroll-snap-type:x proximity;scrollbar-width:none}
+.days::-webkit-scrollbar{display:none}
+.day{flex:none;width:66px;padding:8px 4px;border-radius:15px;border:1.5px solid var(--line);background:var(--card);
+  text-align:center;scroll-snap-align:start;font:inherit;color:inherit;cursor:pointer}
+.day b{display:block;font-size:21px;line-height:1.15}
+.day small{display:block;color:var(--hint);font-size:11.5px}
+.day .cnt{display:block;font-size:10.5px;color:var(--accent);font-weight:700;margin-top:2px;white-space:nowrap}
+.day.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.day.on small,.day.on .cnt{color:#fff}
+.day.full{opacity:.5}
+.day-title{font-weight:700;margin:6px 2px 10px}
+.times{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:8px}
+.time{padding:13px 0;border-radius:13px;border:1.5px solid var(--accent-line);background:var(--card);color:var(--text);
+  font:inherit;font-weight:700;font-size:16px;cursor:pointer;transition:all .15s}
+.time.on{background:var(--accent);color:#fff;border-color:var(--accent);box-shadow:0 5px 16px rgba(214,51,132,.35)}
+.time.busy{border-color:var(--line);color:var(--hint);text-decoration:line-through;opacity:.55;cursor:not-allowed;font-weight:500}
+.legend{display:flex;gap:6px;align-items:center;color:var(--hint);font-size:12px;margin-top:12px}
+.lg{display:inline-block;width:12px;height:12px;border-radius:4px;border:1.5px solid var(--accent-line);margin-left:8px}
+.lg:first-child{margin-left:0}
+.lg.busy{border-color:var(--line);background:var(--line)}
+
+/* ─── Форма ─── */
+.field{margin-bottom:12px}
+.lbl{display:block;font-size:13px;color:var(--hint);margin:0 0 6px 2px}
+.input{width:100%;padding:12px 14px;border-radius:13px;border:1.5px solid var(--line);background:var(--bg);color:var(--text);
+  font:inherit;font-size:16px;outline:none;transition:border-color .15s;-webkit-appearance:none;appearance:none}
+select.input{background-image:linear-gradient(45deg,transparent 50%,var(--hint) 50%),linear-gradient(135deg,var(--hint) 50%,transparent 50%);
+  background-position:calc(100% - 18px) 52%,calc(100% - 13px) 52%;background-size:5px 5px;background-repeat:no-repeat;padding-right:34px}
+.input:focus{border-color:var(--accent)}
+.input.bad,.check.bad{border-color:var(--danger)!important;animation:shake .35s}
+.check.bad{color:var(--danger)}
+@keyframes shake{25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
+textarea.input{min-height:78px;resize:vertical}
+.phone-wrap{display:flex;gap:8px}
+.phone-wrap .input{flex:1}
+.phone-wrap .btn{flex:none;padding:0 12px;font-size:13px}
+.check{display:flex;gap:10px;align-items:flex-start;font-size:13.5px;line-height:1.35;border:1.5px solid transparent;border-radius:12px;padding:4px}
+.check input{width:21px;height:21px;accent-color:var(--accent);flex:none;margin:0}
+.summary{background:var(--bg);border-radius:14px;padding:12px 14px;margin-bottom:14px}
+.sum-row{display:flex;justify-content:space-between;gap:12px;padding:4px 0;font-size:14px}
+.sum-row span{color:var(--hint);flex:none}
+.sum-row b{text-align:right}
+.total{display:flex;justify-content:space-between;font-size:19px;font-weight:800;padding-top:10px;margin-top:6px;border-top:1px dashed var(--line)}
+.total span:last-child{color:var(--accent)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+
+/* ─── Скелетоны и пустые состояния ─── */
+.sk{background:linear-gradient(90deg,var(--line) 25%,rgba(127,127,127,.07) 37%,var(--line) 63%);background-size:400% 100%;animation:sk 1.3s ease infinite;border-radius:12px}
+@keyframes sk{0%{background-position:100% 50%}100%{background-position:0 50%}}
+.empty{text-align:center;padding:22px 10px;color:var(--hint)}
+.empty .e{font-size:40px;line-height:1;margin-bottom:8px}
+.empty b{display:block;color:var(--text);font-size:16px;margin-bottom:4px}
+
+/* ─── Тост ─── */
+.toast{position:fixed;left:50%;top:calc(10px + env(safe-area-inset-top));transform:translate(-50%,-160%);z-index:200;
+  background:rgba(32,22,28,.94);color:#fff;padding:11px 16px;border-radius:14px;font-weight:600;font-size:14px;
+  max-width:92vw;width:max-content;text-align:center;transition:transform .3s cubic-bezier(.2,.9,.3,1.2);box-shadow:0 8px 24px rgba(0,0,0,.2);pointer-events:none}
+.toast.show{transform:translate(-50%,0)}
+.toast.err{background:#c92a4a}
+
+/* ─── Нижняя навигация (только мастер) ─── */
+.nav{position:fixed;left:0;right:0;bottom:0;z-index:60;background:var(--card);border-top:1px solid var(--line);
+  padding:6px 10px calc(6px + env(safe-area-inset-bottom))}
+.nav-in{display:flex;gap:6px;max-width:560px;margin:0 auto}
+.nav button{flex:1;border:0;background:transparent;color:var(--hint);font:inherit;font-weight:700;font-size:14px;padding:11px 6px;border-radius:13px;position:relative;cursor:pointer}
+.nav button.on{background:var(--accent-soft);color:var(--accent)}
+.badge{position:absolute;top:3px;right:10%;min-width:20px;height:20px;padding:0 6px;border-radius:10px;background:#e5484d;color:#fff;font-size:11.5px;font-weight:800;display:grid;place-items:center}
+
+/* ─── Шторка (вместо window.confirm в браузере) ─── */
+.sheet{position:fixed;inset:0;z-index:150}
+.sheet-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.42);animation:fade .2s}
+.sheet-body{position:absolute;left:0;right:0;bottom:0;margin:0 auto;max-width:560px;max-height:88vh;overflow:auto;background:var(--card);
+  border-radius:22px 22px 0 0;padding:20px 16px calc(18px + env(safe-area-inset-bottom));animation:up .25s cubic-bezier(.2,.9,.3,1)}
+.sheet-body h3{margin:0 0 10px;font-size:19px}
+.sheet-msg{font-size:16px;margin:4px 0 14px}
+@keyframes up{from{transform:translateY(100%)}}
+@keyframes fade{from{opacity:0}}
+.success{text-align:center}
+.success .big{font-size:54px;line-height:1;margin:4px 0 8px}
+.success p{margin:6px 0}
+.success .btn{margin-top:10px}
+.policy{font-size:13.5px;line-height:1.5}
+.policy p{margin:0 0 8px}
+
+/* ─── Кабинет мастера ─── */
+.m-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 2px 2px}
+.m-head h1{font-size:23px;margin:0;letter-spacing:-.02em}
+.m-head p{margin:2px 0 0;font-size:13.5px;color:var(--hint)}
+.m-head p.new{color:#e5484d;font-weight:700}
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0}
+.tile{background:var(--card);border-radius:16px;padding:13px 14px;box-shadow:var(--shadow)}
+.tile .k{font-size:12.5px;color:var(--hint);font-weight:600}
+.tile .v{font-size:23px;font-weight:800;margin-top:2px;letter-spacing:-.02em}
+.tile .s{font-size:12.5px;color:var(--hint)}
+.tile.accent{background:linear-gradient(135deg,#d63384,#ee5fa0);color:#fff}
+.tile.accent .k,.tile.accent .s{color:rgba(255,255,255,.88)}
+.actions3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+.qa{background:var(--card);border:0;border-radius:15px;padding:12px 6px;font:inherit;font-size:12.5px;font-weight:700;color:var(--text);
+  box-shadow:var(--shadow);display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer;line-height:1.2}
+.qa span{font-size:23px}
+.seg{display:flex;background:var(--card);border-radius:15px;padding:4px;gap:4px;box-shadow:var(--shadow);position:sticky;top:6px;z-index:5}
+.seg button{flex:1;border:0;background:transparent;padding:10px 4px;border-radius:11px;font:inherit;font-weight:700;font-size:13.5px;color:var(--hint);cursor:pointer}
+.seg button.on{background:var(--accent);color:#fff}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0}
+.chip{border:1.5px solid var(--line);background:var(--card);color:var(--text);border-radius:999px;padding:7px 12px;font:inherit;font-size:13.5px;font-weight:600;cursor:pointer}
+.chip.on{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
+.search{margin-top:12px}
+.date-h{font-weight:800;margin:18px 4px 8px;font-size:13px;color:var(--hint);text-transform:uppercase;letter-spacing:.04em}
+.slot{background:var(--card);border-radius:15px;margin-bottom:8px;box-shadow:var(--shadow);overflow:hidden}
+.slot.past{opacity:.6}
+.slot.open{box-shadow:0 0 0 1.5px var(--accent-line),var(--shadow)}
+.slot-h{display:flex;align-items:center;gap:10px;padding:12px 14px;width:100%;border:0;background:transparent;color:inherit;font:inherit;text-align:left;cursor:pointer}
+.slot-h .t{font-weight:800;font-size:17px;min-width:50px}
+.slot-h .m{flex:1;min-width:0}
+.slot-h .m div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chev{color:var(--hint);font-size:12px}
+.pill{font-size:11px;font-weight:800;padding:3px 8px;border-radius:999px;white-space:nowrap}
+.pill.free{background:rgba(47,158,107,.13);color:var(--ok)}
+.pill.busy{background:var(--accent-soft);color:var(--accent)}
+.pill.new{background:#e5484d;color:#fff}
+.pill.warn{background:rgba(245,159,0,.15);color:#c77700}
+.slot-b{padding:4px 14px 14px;border-top:1px solid var(--line)}
+.kv{padding:5px 0;font-size:14px;word-break:break-word}
+.transfer{display:flex;gap:8px;margin-top:10px}
+.transfer .input{flex:1;padding:9px 34px 9px 12px;font-size:14px}
+details.note{margin-top:12px}
+details.note summary{cursor:pointer;color:var(--link);font-size:14px;font-weight:600;list-style:none}
+details.note summary::-webkit-details-marker{display:none}
+details.note textarea{margin-top:8px;min-height:64px;font-size:14px}
+details.note .btn{margin-top:8px}
+.mbook{background:var(--bg);border-radius:14px;padding:12px;margin-top:10px}
+.mbook .input{background:var(--card)}
+.client{background:var(--card);border-radius:15px;padding:13px 14px;margin-bottom:8px;box-shadow:var(--shadow)}
+.client .top{display:flex;align-items:center;gap:8px}
+.client .top b{font-size:15.5px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.client .stats{font-size:13px;color:var(--hint);margin-top:4px}
+</style>
+</head>
+<body>
+
+<!-- ═════════════ ОКНО КЛИЕНТА ═════════════ -->
+<main class="app" id="clientView">
+  <header class="hero">
+    <div class="hi" id="hello">Здравствуйте 🌸</div>
+    <h1>Запись на наращивание ресниц</h1>
+    <p>Выберите услугу и удобное время — это займёт меньше минуты</p>
+  </header>
+
+  <div class="banner" id="notTg" hidden>
+    Чтобы записаться, откройте приложение через Telegram-бота 👉 <a id="botLink" href="#">@bot</a>
+  </div>
+
+  <!-- 🎀 Активные записи текущего клиента -->
+  <section class="card mine" id="mine" hidden></section>
+
+  <!-- 📍 Студия -->
+  <section class="card studio">
+    <div class="h2">💗 Студия</div>
+    <div class="line"><span>📍</span><span id="addr"></span></div>
+    <div class="line"><span>🚇</span><span id="metro"></span></div>
+    <div class="row">
+      <button class="btn sm secondary" data-act="map">🗺 Яндекс.Карты</button>
+      <button class="btn sm secondary" data-act="writeMaster">💬 Написать мастеру</button>
+    </div>
+    <div class="memo">✨ <b>Памятка:</b> приходите <b>без макияжа глаз</b>. Если носите линзы — лучше снять их перед процедурой.</div>
+  </section>
+
+  <!-- Шаг 1 — услуга -->
+  <section class="card" id="step1">
+    <div class="h2"><span class="num">1</span>Услуга</div>
+    <div class="services" id="services"></div>
+  </section>
+
+  <!-- Шаг 2 — снятие -->
+  <section class="card" id="step2">
+    <div class="h2"><span class="num">2</span>Снятие старых ресниц</div>
+    <div id="addons"></div>
+  </section>
+
+  <!-- Шаг 3 — время -->
+  <section class="card" id="step3">
+    <div class="h2"><span class="num">3</span>Свободное время</div>
+    <div id="slotsBox"></div>
+  </section>
+
+  <!-- Шаг 4 — подтверждение (появляется после выбора слота) -->
+  <section class="card" id="step4" hidden>
+    <div class="h2"><span class="num">4</span>Подтверждение</div>
+    <div class="summary" id="summary"></div>
+
+    <div class="field">
+      <label class="lbl" for="fName">Ваше имя</label>
+      <input class="input" id="fName" autocomplete="given-name" maxlength="60" placeholder="Как к вам обращаться">
+    </div>
+    <div class="field">
+      <label class="lbl" for="fPhone">Телефон</label>
+      <div class="phone-wrap">
+        <input class="input js-phone" id="fPhone" type="tel" inputmode="tel" autocomplete="tel" placeholder="+7 (___) ___-__-__">
+        <button class="btn secondary" id="phoneFromTg" data-act="phoneFromTg" hidden>📱 Из Telegram</button>
+      </div>
+    </div>
+    <div class="field">
+      <label class="lbl" for="fNotes">Пожелания <span class="hint">(необязательно)</span></label>
+      <textarea class="input" id="fNotes" maxlength="500" placeholder="Например: хочу эффект «лисий», чувствительные глаза…"></textarea>
+    </div>
+    <div class="field">
+      <label class="lbl" for="fSource">Откуда узнали обо мне? <span class="hint">(необязательно)</span></label>
+      <select class="input" id="fSource"></select>
+    </div>
+    <label class="check" id="consentBox">
+      <input type="checkbox" id="fConsent">
+      <span>Даю согласие на обработку персональных данных в соответствии с <a href="#" data-act="policy">политикой</a> (152-ФЗ)</span>
+    </label>
+    <!-- Кнопка для браузера; в Telegram вместо неё используется нативная MainButton -->
+    <button class="btn block big" id="submitBtn" data-act="submit" style="margin-top:14px">Подтвердить запись</button>
+  </section>
+
+  <p class="hint center" style="margin-top:18px">Отменить запись можно здесь же, не позднее чем за 2 часа до визита</p>
+</main>
+
+<!-- ═════════════ КАБИНЕТ МАСТЕРА ═════════════ -->
+<main class="app" id="masterView" hidden></main>
+
+<!-- Нижняя навигация: видна только мастеру -->
+<nav class="nav" id="nav" hidden>
+  <div class="nav-in">
+    <button class="on" data-act="tab" data-tab="client">👤 Окно клиента</button>
+    <button data-act="tab" data-tab="master">⚙️ Кабинет<span class="badge" id="navBadge" hidden></span></button>
+  </div>
+</nav>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<div class="sheet" id="sheet" hidden>
+  <div class="sheet-backdrop" data-act="closeSheet"></div>
+  <div class="sheet-body" id="sheetBody"></div>
+</div>
+
+<script>
+'use strict';
+/* ═══════════════════════════════════════════════════════════════════
+   НАСТРОЙКИ — меняйте здесь
+   ВАЖНО: BOT_TOKEN здесь НЕ хранится и храниться не должен.
+   Публичный ключ sb_publishable_ безопасен для фронта: он даёт только
+   чтение расписания (дата/время/занято), всё остальное закрыто RLS.
+   ═══════════════════════════════════════════════════════════════════ */
+const CONFIG = {
+  SUPABASE_URL: 'https://stobstmoxkltdmdtzybt.supabase.co',
+  SUPABASE_KEY: 'sb_publishable_rTHPPc1eE5Ov6jRQGg2r9w_E1NXx5wp',
+  API_URL: 'https://stobstmoxkltdmdtzybt.supabase.co/functions/v1/booking-api',
+  MASTER_ID: 967778314,
+  MASTER_USERNAME: '',            // @username мастера без @ — тогда «Написать мастеру» работает на всех устройствах
+  BOT_USERNAME: 'lash_master_booking_bot',
+  ADDRESS: 'Москва, Волжский бульвар, 16к1, 4-й подъезд',
+  ADDRESS_SHORT: 'Волжский бульвар, 16к1',
+  METRO: 'м. Кузьминки / Текстильщики',
+  MAP_URL: 'https://yandex.ru/maps/?text=' + encodeURIComponent('Москва, Волжский бульвар, 16к1'),
+  OPERATOR: 'мастер студии (укажите ФИО / самозанятость)', // для политики ПД
+  CANCEL_HOURS: 2,                // отмена онлайн — не позже чем за N часов
+  MIN_LEAD_MIN: 60,               // слоты, до которых меньше N минут, клиенту не показываем
+  TEMPLATE_TIMES: ['10:00', '13:30', '17:00'],
+};
+
+// Прайс. Цена на сервере считается по такому же списку (booking-api) — меняйте в обоих местах.
+const SERVICES = [
+  { id: 'classic', name: 'Классика', price: 2300, dur: '≈ 2 ч',       minutes: 120, desc: 'Натуральный эффект: 1 ресничка на 1 свою' },
+  { id: 'd15',     name: '1,5D',     price: 2600, dur: '≈ 2 ч',       minutes: 120, desc: 'Чуть гуще классики, всё ещё естественно' },
+  { id: 'd2',      name: '2D',       price: 2800, dur: '≈ 2,5 ч',     minutes: 150, desc: 'Выразительный, но лёгкий объём' },
+  { id: 'd3',      name: '3D',       price: 3000, dur: '≈ 2,5–3 ч',   minutes: 165, desc: 'Пышный объём и густота' },
+  { id: 'd4',      name: '4D',       price: 3300, dur: '≈ 3 ч',       minutes: 180, desc: 'Максимальный объём, «вау»-эффект' },
+  { id: 'removal', name: 'Снятие без наращивания', price: 500, dur: '≈ 30 мин', minutes: 30, desc: 'Бережное снятие ремувером', noAddons: true },
+];
+// Снятие — взаимоисключающие варианты (нельзя одновременно снимать «свою» и «чужую» работу)
+const ADDONS = [
+  { id: 'none',    name: 'Без снятия',          price: 0 },
+  { id: 'own',     name: 'Снятие моей работы',  price: 0,   hint: 'если наращивали у меня' },
+  { id: 'foreign', name: 'Снятие чужой работы', price: 500, hint: 'работа другого мастера' },
+];
+const SOURCES = ['Instagram', 'ВКонтакте', 'Telegram', 'Подруга', '2ГИС', 'Яндекс Карты', 'Авито', 'Другое'];
+
+// Тексты ошибок сервера → понятные сообщения
+const ERR = {
+  SLOT_TAKEN: 'Это время только что заняли 😔 Выберите другое',
+  LIMIT_REACHED: 'У вас уже 2 активные записи — это максимум. Отмените одну или напишите мастеру',
+  TOO_LATE: 'До визита меньше 2 часов — отмена только через мастера',
+  UNAUTHORIZED: 'Сессия устарела. Закройте и снова откройте приложение',
+  NOT_IN_TG: 'Откройте приложение через Telegram-бота',
+  BAD_PHONE: 'Проверьте номер телефона', BAD_NAME: 'Укажите имя', NO_CONSENT: 'Нужно согласие на обработку данных',
+  BAD_SERVICE: 'Выберите услугу', FORBIDDEN: 'Нет доступа', NOT_FOUND: 'Запись не найдена — обновите список',
+  FROM_NOT_BOOKED: 'Эта запись уже освобождена', SAME_SLOT: 'Выберите другое время',
+  BAD_INPUT: 'Проверьте дату и время', TOO_MANY: 'Слишком много окон за раз (максимум 300)',
+  TG_SEND_FAILED: 'Не удалось отправить файл. Нажмите /start в чате с ботом и повторите',
+  BOT_TOKEN_MISSING: 'Сервер не настроен: не задан BOT_TOKEN',
+  NETWORK: 'Нет связи с сервером. Проверьте интернет',
+  HTTP_401: 'Сервер отклонил запрос: у функции booking-api должен быть выключен Verify JWT',
+  HTTP_404: 'Функция booking-api не найдена — проверьте, что она задеплоена',
+};
+
+/* ═══ Telegram WebApp ═══ */
+const tg = window.Telegram && window.Telegram.WebApp;
+const inTg = !!(tg && tg.initData);
+const tgUser = (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) || null;
+const ver = v => !!(tg && tg.isVersionAtLeast && tg.isVersionAtLeast(v));
+
+/* ═══ Утилиты ═══ */
+const $ = (s, r = document) => r.querySelector(s);
+const h = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const rub = n => (Number(n) || 0).toLocaleString('ru-RU') + ' ₽';
+const MSK = 3 * 3600e3;                                              // Москва = UTC+3 круглый год
+const todayMsk = () => new Date(Date.now() + MSK).toISOString().slice(0, 10);
+const addDays = (d, n) => new Date(Date.parse(d + 'T00:00:00Z') + n * 864e5).toISOString().slice(0, 10);
+const slotTs = (d, t) => Date.parse(`${d}T${String(t).padStart(5, '0')}:00+03:00`);
+const MONTHS = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
+const MON_S = ['янв','фев','мар','апр','мая','июн','июл','авг','сен','окт','ноя','дек'];
+const WD = ['вс','пн','вт','ср','чт','пт','сб'];
+const dp = d => { const [y, m, dd] = d.split('-').map(Number); return { y, m, dd, wd: new Date(Date.UTC(y, m - 1, dd)).getUTCDay() }; };
+const humanDay = d => { const p = dp(d); return `${p.dd} ${MONTHS[p.m - 1]} · ${WD[p.wd]}`; };
+const humanDate = d => { const p = dp(d); return `${p.dd} ${MONTHS[p.m - 1]}`; };
+const relDay = d => d === todayMsk() ? 'Сегодня' : d === addDays(todayMsk(), 1) ? 'Завтра' : '';
+const digits = s => String(s || '').replace(/\D/g, '');
+const phoneHref = p => { let d = digits(p); if (d.length === 11 && d[0] === '8') d = '7' + d.slice(1); return 'tel:+' + d; };
+const plural = (n, a, b, c) => { const m10 = n % 10, m100 = n % 100; return m10 === 1 && m100 !== 11 ? a : m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14) ? b : c; };
+const svcById = id => SERVICES.find(s => s.id === id);
+const svcByName = n => SERVICES.find(s => s.name === n);
+const addonById = id => ADDONS.find(a => a.id === id);
+const svcLine = s => s.addon_name && s.addon_name !== 'Без снятия' ? `${s.service_name} + ${s.addon_name}` : (s.service_name || '—');
+const fmtDT = iso => { const x = new Date(Date.parse(iso) + MSK); return `${x.getUTCDate()} ${MON_S[x.getUTCMonth()]}, ${String(x.getUTCHours()).padStart(2, '0')}:${String(x.getUTCMinutes()).padStart(2, '0')}`; };
+
+// localStorage с защитой от исключений (приватный режим и т.п.)
+const LS = { slots: 'lash_slots_v1', profile: 'lash_profile_v1', seen: 'lash_master_seen_v1' };
+const lsGet = k => { try { return JSON.parse(localStorage.getItem(k)); } catch (e) { return null; } };
+const lsSet = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
+
+/* ═══ Состояние приложения ═══ */
+const S = {
+  tab: 'client',
+  slots: [], slotsLoaded: false, slotsError: false,
+  service: null, addon: 'none', day: null, slotId: null,
+  busy: false, dirty: false,
+  me: { loaded: false, bookings: [] },
+  lastBooking: null,
+  isMaster: !!(tgUser && tgUser.id === CONFIG.MASTER_ID),
+  m: { slots: [], loaded: false, error: false, view: 'schedule', filter: 'all', q: '', cq: '', cfilter: 'all',
+       openId: null, bookFormId: null, prevSeen: 0,
+       addDate: todayMsk(), addTimes: new Set(), addManual: '', addRepeat: '0' },
+};
+
+/* ═══ Отклик: вибрация, тосты, диалоги ═══ */
+function hap(type) {
+  try {
+    const H = tg && tg.HapticFeedback; if (!H || !ver('6.1')) return;
+    if (type === 'select') H.selectionChanged();
+    else if (type === 'success' || type === 'error' || type === 'warning') H.notificationOccurred(type);
+    else H.impactOccurred(type || 'light');
+  } catch (e) {}
+}
+let toastTimer;
+function toast(msg, kind = '') {
+  const el = $('#toast');
+  el.textContent = msg; el.className = 'toast show ' + kind;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { el.className = 'toast ' + kind; }, 3000);
+}
+function toastErr(e) {
+  const code = (e && e.message) || String(e);
+  hap('error');
+  toast(ERR[code] || (/fetch|network|load failed/i.test(code) ? ERR.NETWORK : 'Что-то пошло не так. Попробуйте ещё раз'), 'err');
+}
+
+// Своя шторка — для браузера (в Telegram используем нативные showPopup/showAlert)
+let sheetCb = null;
+function openSheet(html, cb) { $('#sheetBody').innerHTML = html; $('#sheet').hidden = false; sheetCb = cb || null; updateBackButton(); }
+function closeSheet(val) { if ($('#sheet').hidden) return; $('#sheet').hidden = true; const cb = sheetCb; sheetCb = null; if (cb) cb(val); updateBackButton(); }
+
+function confirmDlg(message, okText = 'Да', destructive = false) {
+  return new Promise(res => {
+    if (inTg && ver('6.2')) {
+      tg.showPopup({ message: message.slice(0, 250), buttons: [{ id: 'ok', type: destructive ? 'destructive' : 'default', text: okText }, { type: 'cancel' }] },
+        id => res(id === 'ok'));
+      return;
+    }
+    openSheet(`<p class="sheet-msg">${h(message)}</p><div class="row">
+      <button class="btn secondary" data-sheet="0">Отмена</button>
+      <button class="btn ${destructive ? 'danger-solid' : ''}" data-sheet="1">${h(okText)}</button></div>`, v => res(v === '1'));
+  });
+}
+
+/* ═══ Ссылки ═══ */
+function openExternal(url) { if (inTg && ver('6.1')) tg.openLink(url); else window.open(url, '_blank'); }
+function openUserChat(username, id) {
+  if (username) {
+    const u = 'https://t.me/' + String(username).replace(/^@/, '');
+    if (inTg) tg.openTelegramLink(u); else window.open(u, '_blank');
+  } else if (id) {
+    window.location.href = 'tg://user?id=' + id;   // работает не во всех клиентах — лучше задать username
+  }
+}
+const writeMaster = () => openUserChat(CONFIG.MASTER_USERNAME, CONFIG.MASTER_ID);
+
+// Копирование: clipboard API → execCommand → шторка с текстом для ручного копирования
+async function copyText(text, okMsg = 'Скопировано ✓') {
+  try { await navigator.clipboard.writeText(text); hap('success'); toast(okMsg); return; } catch (e) {}
+  try {
+    const ta = document.createElement('textarea');
+    ta.value = text; ta.setAttribute('readonly', ''); ta.style.cssText = 'position:fixed;opacity:0;top:0';
+    document.body.appendChild(ta); ta.select(); const ok = document.execCommand('copy'); ta.remove();
+    if (ok) { hap('success'); toast(okMsg); return; }
+  } catch (e) {}
+  openSheet(`<h3>Скопируйте текст</h3><textarea class="input" rows="9" readonly onfocus="this.select()">${h(text)}</textarea>
+    <button class="btn block" data-sheet="0" style="margin-top:10px">Готово</button>`);
+}
+
+/* ═══ Сервер ═══ */
+// Все изменения — только через Edge Function с подписанным initData
+async function api(action, payload = {}) {
+  if (!inTg) throw new Error('NOT_IN_TG');
+  let r;
+  try {
+    r = await fetch(CONFIG.API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', apikey: CONFIG.SUPABASE_KEY },
+      body: JSON.stringify({ initData: tg.initData, action, payload }),
+    });
+  } catch (e) { throw new Error('NETWORK'); }
+  let data = {};
+  try { data = await r.json(); } catch (e) {}
+  if (!r.ok) throw new Error(data.error || 'HTTP_' + r.status);
+  return data;
+}
+
+// Публичное расписание: только id / дата / время / занято
+const sb = window.supabase && window.supabase.createClient
+  ? window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_KEY, { auth: { persistSession: false, autoRefreshToken: false } })
+  : null;
+async function fetchSlots() {
+  const today = todayMsk();
+  if (sb) {
+    const { data, error } = await sb.from('slots_public').select('id,slot_date,slot_time,is_booked')
+      .gte('slot_date', today).order('slot_date').order('slot_time').limit(1000);
+    if (error) throw new Error('NETWORK');
+    return data || [];
+  }
+  // запасной путь, если CDN supabase-js не загрузился
+  const r = await fetch(`${CONFIG.SUPABASE_URL}/rest/v1/slots_public?select=id,slot_date,slot_time,is_booked&slot_date=gte.${today}&order=slot_date.asc,slot_time.asc&limit=1000`,
+    { headers: { apikey: CONFIG.SUPABASE_KEY } });
+  if (!r.ok) throw new Error('NETWORK');
+  return r.json();
+}
+
+let slotsLoading = false;
+async function loadSlots(silent) {
+  if (slotsLoading) return;
+  slotsLoading = true;
+  try {
+    S.slots = await fetchSlots();
+    S.slotsLoaded = true; S.slotsError = false;
+    lsSet(LS.slots, { day: todayMsk(), slots: S.slots });        // офлайн-кеш для мгновенного старта
+    if (S.slotId) {
+      const s = S.slots.find(x => x.id === S.slotId);
+      if (!s || s.is_booked) { S.slotId = null; hap('warning'); toast('Выбранное время заняли — выберите другое', 'err'); }
+    }
+  } catch (e) {
+    S.slotsError = !S.slotsLoaded;
+    if (!silent) toastErr(e);
+  } finally {
+    slotsLoading = false;
+    renderSlots(); renderStep4();
+  }
+}
+
+async function loadMe() {
+  if (!inTg) return;
+  try {
+    const r = await api('me');
+    S.me = { loaded: true, bookings: r.bookings || [] };
+    if (r.isMaster && !S.isMaster) { S.isMaster = true; showNav(); loadMaster(true); }
+    if (!r.isMaster && S.isMaster) { S.isMaster = false; hideNav(); }
+  } catch (e) {
+    S.me.loaded = true;
+    if (e.message === 'UNAUTHORIZED' || e.message === 'BOT_TOKEN_MISSING') toastErr(e);
+  }
+  renderMine();
+}
+
+/* ═══════════════════ ОКНО КЛИЕНТА: отрисовка ═══════════════════ */
+function emptyState(emoji, title, extra = '') {
+  return `<div class="empty"><div class="e">${emoji}</div><b>${title}</b>${extra}</div>`;
+}
+
+function renderMine() {
+  const el = $('#mine');
+  const list = (S.me.bookings || []).filter(b => slotTs(b.slot_date, b.slot_time) + 3 * 3600e3 > Date.now());
+  if (!list.length) { el.hidden = true; el.innerHTML = ''; return; }
+  el.hidden = false;
+  el.innerHTML = `<div class="h2">🎀 ${list.length > 1 ? 'Ваши записи' : 'Ваша запись'}</div>` + list.map(b => {
+    const hoursLeft = (slotTs(b.slot_date, b.slot_time) - Date.now()) / 3600e3;
+    const canCancel = hoursLeft > CONFIG.CANCEL_HOURS;
+    const rd = relDay(b.slot_date);
+    return `<div class="bk">
+      <div class="bk-when">${rd ? rd + ', ' : ''}${h(humanDay(b.slot_date))} · <b>${h(b.slot_time)}</b></div>
+      <div class="bk-what">💫 ${h(svcLine(b))} · ${rub(b.total_price)}</div>
+      <div class="bk-what">📍 ${h(CONFIG.ADDRESS_SHORT)}</div>
+      <div class="row">
+        <button class="btn sm white" data-act="ics" data-id="${b.id}">📅 В календарь</button>
+        ${canCancel ? `<button class="btn sm glass" data-act="cancelMine" data-id="${b.id}">Отменить</button>` : ''}
+      </div>
+      ${canCancel ? '' : `<div class="bk-note">Отмена недоступна — до визита меньше ${CONFIG.CANCEL_HOURS} ч. Напишите мастеру 💬</div>
+        <div class="row"><button class="btn sm white" data-act="writeMaster">💬 Написать мастеру</button></div>`}
+    </div>`;
+  }).join('');
+}
+
+function renderServices() {
+  $('#services').innerHTML = SERVICES.map(s => `
+    <button class="svc ${s.wide ? 'wide' : ''} ${S.service === s.id ? 'on' : ''}" data-act="svc" data-id="${s.id}" aria-pressed="${S.service === s.id}">
+      <div class="name">${h(s.name)}</div><div class="dur">${h(s.dur)}</div>
+      <div class="desc">${h(s.desc)}</div><div class="price">${rub(s.price)}</div>
+    </button>`).join('');
+}
+
+function renderAddons() {
+  const svc = svcById(S.service);
+  if (svc && svc.noAddons) { $('#addons').innerHTML = `<div class="hint-box">Для снятия без наращивания доп. опции не нужны ✨</div>`; return; }
+  $('#addons').innerHTML = ADDONS.map(a => `
+    <button class="opt ${S.addon === a.id ? 'on' : ''}" data-act="addon" data-id="${a.id}" aria-pressed="${S.addon === a.id}">
+      <span class="dot"></span><span><b>${h(a.name)}</b>${a.hint ? `<small>${h(a.hint)}</small>` : ''}</span>
+      <span class="p">${a.price ? '+' + rub(a.price) : 'бесплатно'}</span>
+    </button>`).join('');
+}
+
+const visibleSlots = () => { const lim = Date.now() + CONFIG.MIN_LEAD_MIN * 60e3; return S.slots.filter(s => slotTs(s.slot_date, s.slot_time) > lim); };
+
+function renderSlots() {
+  const box = $('#slotsBox');
+  if (!S.slotsLoaded) {
+    box.innerHTML = S.slotsError
+      ? emptyState('📡', 'Не удалось загрузить расписание', '<div class="row" style="justify-content:center"><button class="btn secondary" data-act="reloadSlots">Повторить</button></div>')
+      : `<div style="display:flex;gap:8px;margin-bottom:12px">${'<div class="sk" style="width:66px;height:78px"></div>'.repeat(5)}</div>
+         <div class="times">${'<div class="sk" style="height:48px"></div>'.repeat(6)}</div>`;
+    return;
+  }
+  const vs = visibleSlots();
+  if (!vs.some(s => !s.is_booked)) {
+    box.innerHTML = emptyState('🌙', 'Свободных окошек пока нет',
+      'Напишите мастеру — возможно, найдётся время<div class="row" style="justify-content:center"><button class="btn secondary" data-act="writeMaster">💬 Написать мастеру</button></div>');
+    return;
+  }
+  const days = [...new Set(vs.map(s => s.slot_date))];
+  if (!S.day || !days.includes(S.day)) S.day = days.find(d => vs.some(s => s.slot_date === d && !s.is_booked)) || days[0];
+
+  const prevStrip = $('#daysStrip'); const scrollLeft = prevStrip ? prevStrip.scrollLeft : null;
+  const chips = days.map(d => {
+    const p = dp(d); const free = vs.filter(s => s.slot_date === d && !s.is_booked).length;
+    return `<button class="day ${d === S.day ? 'on' : ''} ${free ? '' : 'full'}" data-act="day" data-d="${d}">
+      <small>${WD[p.wd]}</small><b>${p.dd}</b><small>${MON_S[p.m - 1]}</small>
+      <span class="cnt">${free ? free + ' ' + plural(free, 'окно', 'окна', 'окон') : 'нет мест'}</span></button>`;
+  }).join('');
+  const times = vs.filter(s => s.slot_date === S.day).map(s => s.is_booked
+    ? `<button class="time busy" disabled aria-label="${h(s.slot_time)} занято">${h(s.slot_time)}</button>`
+    : `<button class="time ${S.slotId === s.id ? 'on' : ''}" data-act="slot" data-id="${s.id}">${h(s.slot_time)}</button>`).join('');
+  const rd = relDay(S.day);
+  box.innerHTML = `<div class="days" id="daysStrip">${chips}</div>
+    <div class="day-title">${rd ? rd + ' · ' : ''}${h(humanDay(S.day))}</div>
+    <div class="times">${times}</div>
+    <div class="legend"><span class="lg"></span>свободно<span class="lg busy"></span>занято</div>`;
+  const strip = $('#daysStrip');
+  if (scrollLeft !== null) strip.scrollLeft = scrollLeft;
+  else { const on = strip.querySelector('.day.on'); if (on) strip.scrollLeft = Math.max(0, on.offsetLeft - 16); }
+}
+
+function total() {
+  const svc = svcById(S.service); if (!svc) return 0;
+  const ad = svc.noAddons ? null : addonById(S.addon);
+  return svc.price + (ad ? ad.price : 0);
+}
+
+function renderStep4() {
+  const sec = $('#step4');
+  const slot = S.slots.find(s => s.id === S.slotId);
+  if (!slot) { sec.hidden = true; updateMainButton(); updateGuards(); return; }
+  sec.hidden = false;
+  const svc = svcById(S.service);
+  const ad = svc && !svc.noAddons ? addonById(S.addon) : null;
+  const rd = relDay(slot.slot_date);
+  $('#summary').innerHTML = `
+    <div class="sum-row"><span>📅 Когда</span><b>${rd ? rd + ', ' : ''}${h(humanDay(slot.slot_date))}, ${h(slot.slot_time)}</b></div>
+    <div class="sum-row"><span>💫 Услуга</span><b>${svc ? `${h(svc.name)} <span class="hint">(${h(svc.dur)})</span>` : '<a href="#" data-act="toStep1">выберите ↑</a>'}</b></div>
+    ${ad ? `<div class="sum-row"><span>✂️ Снятие</span><b>${h(ad.name)}${ad.price ? ' · +' + rub(ad.price) : ''}</b></div>` : ''}
+    <div class="total"><span>Итого</span><span>${svc ? rub(total()) : '—'}</span></div>`;
+  updateMainButton(); updateGuards();
+}
+
+/* MainButton Telegram — на шаге подтверждения */
+function updateMainButton() {
+  const show = S.tab === 'client' && !!S.slotId && !$('#step4').hidden;
+  const text = S.service ? `Подтвердить запись · ${rub(total())}` : 'Выберите услугу ↑';
+  const btn = $('#submitBtn');
+  if (inTg && tg.MainButton) {
+    btn.hidden = true;
+    if (show) tg.MainButton.setParams({ text, color: '#d63384', text_color: '#ffffff', is_active: !S.busy, is_visible: true, has_shine_effect: !!S.service });
+    else tg.MainButton.hide();
+  } else {
+    btn.hidden = false; btn.textContent = text; btn.disabled = S.busy;
+  }
+}
+
+/* Защита от случайного закрытия, если слот выбран, но запись не подтверждена */
+function updateGuards() {
+  S.dirty = !!S.slotId;
+  if (inTg && ver('6.2')) { S.dirty ? tg.enableClosingConfirmation() : tg.disableClosingConfirmation(); }
+  updateBackButton();
+}
+window.addEventListener('beforeunload', e => { if (S.dirty) { e.preventDefault(); e.returnValue = ''; } });
+
+function updateBackButton() {
+  if (!inTg || !ver('6.1')) return;
+  const need = !$('#sheet').hidden || S.tab === 'master' || (S.tab === 'client' && !!S.slotId);
+  need ? tg.BackButton.show() : tg.BackButton.hide();
+}
+function onBack() {
+  if (!$('#sheet').hidden) return closeSheet(null);
+  if (S.tab === 'master') return switchTab('client');
+  if (S.slotId) { S.slotId = null; hap('light'); renderSlots(); renderStep4(); $('#step3').scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+}
+
+/* ═══ Телефон: маска +7 (___) ___-__-__ ═══ */
+function maskPhone(v, inputType) {
+  let d = digits(v);
+  if (!d) return '';
+  if (d[0] === '8') d = '7' + d.slice(1); else if (d[0] !== '7') d = '7' + d;
+  d = d.slice(0, 11);
+  if (d.length === 1) return String(inputType || '').startsWith('delete') ? '' : '+7';
+  const p = d.slice(1);
+  let out = '+7 (' + p.slice(0, 3);
+  if (p.length > 3) out += ') ' + p.slice(3, 6);
+  if (p.length > 6) out += '-' + p.slice(6, 8);
+  if (p.length > 8) out += '-' + p.slice(8, 10);
+  return out;
+}
+
+/* Имя/телефон запоминаются (localStorage + облако Telegram) — при повторной записи не нужно вводить */
+function fillProfile(p, onlyEmpty) {
+  if (!p) return;
+  if (p.name && (!onlyEmpty || !$('#fName').value)) $('#fName').value = p.name;
+  if (p.phone && (!onlyEmpty || !$('#fPhone').value)) $('#fPhone').value = maskPhone(p.phone);
+}
+function loadProfile() {
+  fillProfile(lsGet(LS.profile), false);
+  if (!$('#fName').value && tgUser && tgUser.first_name) $('#fName').value = tgUser.first_name;
+  if (inTg && ver('6.9') && tg.CloudStorage) {
+    try { tg.CloudStorage.getItem('profile', (err, v) => { if (!err && v) { try { fillProfile(JSON.parse(v), true); } catch (e) {} } }); } catch (e) {}
+  }
+}
+function saveProfile(p) {
+  lsSet(LS.profile, p);
+  try { if (inTg && ver('6.9') && tg.CloudStorage) tg.CloudStorage.setItem('profile', JSON.stringify(p)); } catch (e) {}
+}
+
+function fieldErr(sel, msg) {
+  const el = $(sel);
+  el.classList.remove('bad'); void el.offsetWidth; el.classList.add('bad');
+  el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') setTimeout(() => el.focus(), 250);
+  hap('error'); toast(msg, 'err');
+  setTimeout(() => el.classList.remove('bad'), 2500);
+}
+
+function setBusy(b) {
+  S.busy = b;
+  if (inTg && tg.MainButton) { if (b) { tg.MainButton.showProgress(false); tg.MainButton.disable(); } else { tg.MainButton.hideProgress(); tg.MainButton.enable(); } }
+  updateMainButton();
+}
+
+/* ═══ Подтверждение записи ═══ */
+async function submitBooking() {
+  if (S.busy) return;
+  const slot = S.slots.find(s => s.id === S.slotId);
+  if (!slot) { toast('Выберите время', 'err'); return; }
+  const svc = svcById(S.service);
+  if (!svc) { hap('error'); toast('Выберите услугу', 'err'); $('#step1').scrollIntoView({ behavior: 'smooth' }); return; }
+  const name = $('#fName').value.trim();
+  const phone = $('#fPhone').value;
+  if (!name) return fieldErr('#fName', 'Укажите имя');
+  if (digits(phone).length !== 11) return fieldErr('#fPhone', 'Введите номер телефона полностью');
+  if (!$('#fConsent').checked) return fieldErr('#consentBox', 'Нужно согласие на обработку данных');
+  if (!inTg) return toastErr(new Error('NOT_IN_TG'));
+
+  setBusy(true);
+  try {
+    const r = await api('book', {
+      slotId: slot.id, service: svc.id, addon: svc.noAddons ? null : S.addon,
+      name, phone, notes: $('#fNotes').value.trim(), source: $('#fSource').value || null, consent: true,
+    });
+    saveProfile({ name, phone });
+    S.lastBooking = r.booking;
+    S.slotId = null;
+    $('#fNotes').value = '';
+    hap('success'); toast('Запись оформлена ✓');
+    renderSlots(); renderStep4();
+    showSuccess(r.booking);
+    loadSlots(true); loadMe();
+    askWriteAccess();
+  } catch (e) {
+    if (e.message === 'SLOT_TAKEN') { S.slotId = null; loadSlots(true); }
+    toastErr(e);
+  } finally {
+    setBusy(false);
+  }
+}
+
+function showSuccess(b) {
+  const rd = relDay(b.slot_date);
+  openSheet(`<div class="success">
+    <div class="big">🎉</div><h3>Вы записаны!</h3>
+    <p><b>${rd ? rd + ', ' : ''}${h(humanDay(b.slot_date))} в ${h(b.slot_time)}</b><br>${h(svcLine(b))} · ${rub(b.total_price)}</p>
+    <p class="hint">📍 ${h(CONFIG.ADDRESS)}<br>🔔 Напомню за сутки и за 2 часа до визита</p>
+    <button class="btn block" data-act="ics" data-id="${b.id}">📅 Добавить в календарь</button>
+    <button class="btn ghost block" data-act="gcal" data-id="${b.id}">Google Календарь</button>
+    <button class="btn secondary block" data-sheet="0">Готово</button>
+  </div>`);
+}
+
+// Разрешение боту писать в личку (иначе напоминания не дойдут)
+function askWriteAccess() {
+  if (!(inTg && ver('6.9') && tgUser) || tgUser.allows_write_to_pm) return;
+  setTimeout(() => { try { tg.requestWriteAccess(ok => { if (ok) { tgUser.allows_write_to_pm = true; toast('Напоминания включены 🔔'); } }); } catch (e) {} }, 1500);
+}
+
+function findBooking(id) {
+  return (S.me.bookings || []).find(b => b.id === id) || (S.lastBooking && S.lastBooking.id === id ? S.lastBooking : null);
+}
+function icsUrl(b) {
+  const svc = svcByName(b.service_name);
+  return `${CONFIG.API_URL}?ics=1&d=${b.slot_date}&t=${encodeURIComponent(b.slot_time)}&m=${svc ? svc.minutes : 150}&s=${encodeURIComponent(b.service_name || '')}`;
+}
+function gcalUrl(b) {
+  const svc = svcByName(b.service_name);
+  const st = new Date(slotTs(b.slot_date, b.slot_time)); const en = new Date(st.getTime() + (svc ? svc.minutes : 150) * 60e3);
+  const f = x => x.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
+  return 'https://calendar.google.com/calendar/render?action=TEMPLATE&text=' + encodeURIComponent('Наращивание ресниц — ' + (b.service_name || ''))
+    + '&dates=' + f(st) + '/' + f(en) + '&location=' + encodeURIComponent(CONFIG.ADDRESS) + '&details=' + encodeURIComponent('Приходите без макияжа глаз 🌸');
+}
+
+async function cancelMine(id) {
+  const b = findBooking(id); if (!b) return;
+  const ok = await confirmDlg(`Отменить запись на ${humanDate(b.slot_date)} в ${b.slot_time}?`, 'Отменить запись', true);
+  if (!ok) return;
+  try {
+    await api('cancel', { slotId: b.id });
+    hap('success'); toast('Запись отменена. Мастер получил уведомление');
+    S.me.bookings = S.me.bookings.filter(x => x.id !== id);
+    renderMine(); loadSlots(true); loadMe();
+  } catch (e) { toastErr(e); loadMe(); }
+}
+
+function requestPhoneFromTg() {
+  if (!(inTg && ver('6.9'))) return;
+  tg.requestContact((ok, res) => {
+    if (!ok) return;
+    const ph = res && res.responseUnsafe && res.responseUnsafe.contact && res.responseUnsafe.contact.phone_number;
+    if (ph) { $('#fPhone').value = maskPhone(ph); hap('success'); }
+    else toast('Номер отправлен в чат с ботом — введите его и здесь, пожалуйста');
+  });
+}
+
+function showPolicy() {
+  openSheet(`<h3>Обработка персональных данных</h3><div class="policy">
+    <p><b>Кто обрабатывает:</b> ${h(CONFIG.OPERATOR)}.</p>
+    <p><b>Какие данные:</b> имя, номер телефона, Telegram ID и username, пожелания к процедуре, источник, из которого вы узнали о студии.</p>
+    <p><b>Зачем:</b> запись на процедуру, связь с вами, напоминания о визите.</p>
+    <p><b>Срок:</b> до отзыва согласия. Данные не передаются третьим лицам, кроме сервисов хранения (Supabase) и Telegram, необходимых для работы записи.</p>
+    <p><b>Как отозвать:</b> напишите мастеру в Telegram — данные будут удалены.</p>
+    <p class="hint">Согласие дано в соответствии с Федеральным законом № 152-ФЗ «О персональных данных».</p>
+  </div><button class="btn block" data-sheet="0" style="margin-top:8px">Понятно</button>`);
+}
+
+/* ═══════════════════ КАБИНЕТ МАСТЕРА ═══════════════════ */
+function showNav() { $('#nav').hidden = false; document.body.classList.add('has-nav'); updateBadge(); }
+function hideNav() { $('#nav').hidden = true; document.body.classList.remove('has-nav'); if (S.tab === 'master') switchTab('client'); }
+
+function switchTab(tab) {
+  if (tab === S.tab) return;
+  S.tab = tab; hap('select');
+  document.querySelectorAll('#nav button').forEach(b => b.classList.toggle('on', b.dataset.tab === tab));
+  $('#clientView').hidden = tab !== 'client';
+  $('#masterView').hidden = tab !== 'master';
+  if (tab === 'master') {
+    S.m.prevSeen = Number(lsGet(LS.seen)) || Date.now();
+    lsSet(LS.seen, Date.now());                         // «новые» — с момента прошлого визита в кабинет
+    renderMaster(); loadMaster(true).then(updateBadge);
+  }
+  updateBadge(); updateMainButton(); updateBackButton();
+  window.scrollTo(0, 0);
+}
+
+let masterLoading = null;
+function loadMaster(silent) {
+  if (!inTg) return Promise.resolve();
+  if (masterLoading) return masterLoading;
+  masterLoading = (async () => {
+    try {
+      const r = await api('master_list');
+      S.m.slots = r.slots || []; S.m.loaded = true; S.m.error = false;
+    } catch (e) {
+      S.m.error = !S.m.loaded;
+      if (e.message === 'FORBIDDEN') { S.isMaster = false; hideNav(); }
+      else if (!silent) toastErr(e);
+    } finally {
+      masterLoading = null;
+      updateBadge();
+      if (S.tab === 'master') renderMaster();
+    }
+  })();
+  return masterLoading;
+}
+
+function newCount() {
+  const seen = Number(lsGet(LS.seen)) || Date.now();
+  return S.m.slots.filter(s => s.is_booked && s.booked_at && Date.parse(s.booked_at) > seen).length;
+}
+function updateBadge() {
+  const n = S.tab === 'master' ? 0 : newCount();
+  const b = $('#navBadge'); b.textContent = n; b.hidden = !n;
+}
+
+const freeFuture = () => S.m.slots.filter(s => !s.is_booked && slotTs(s.slot_date, s.slot_time) > Date.now());
+
+function renderMaster() {
+  const el = $('#masterView');
+  if (!S.m.loaded) {
+    el.innerHTML = S.m.error
+      ? emptyState('📡', 'Не удалось загрузить кабинет', '<div class="row" style="justify-content:center"><button class="btn secondary" data-act="mReload">Повторить</button></div>')
+      : `<div class="m-head"><div><h1>Кабинет мастера</h1><p>Загружаю…</p></div></div>
+         <div class="tiles">${'<div class="sk" style="height:84px;border-radius:16px"></div>'.repeat(4)}</div>
+         ${'<div class="sk" style="height:56px;margin-bottom:8px;border-radius:15px"></div>'.repeat(4)}`;
+    return;
+  }
+  const fresh = S.m.slots.filter(s => s.is_booked && s.booked_at && Date.parse(s.booked_at) > S.m.prevSeen).length;
+  el.innerHTML = `
+    <div class="m-head">
+      <div><h1>Кабинет мастера</h1>
+        ${fresh ? `<p class="new">🔴 ${fresh} ${plural(fresh, 'новая запись', 'новые записи', 'новых записей')} с прошлого визита</p>` : `<p>Обновлено ${fmtDT(new Date().toISOString())}</p>`}</div>
+      <button class="icon-btn" data-act="mReload" aria-label="Обновить">↻</button>
+    </div>
+    ${renderDash()}
+    <div class="actions3">
+      <button class="qa" data-act="mStories"><span>📋</span>Окошки для сторис</button>
+      <button class="qa" data-act="mCsv"><span>📥</span>CSV в чат</button>
+      <button class="qa" data-act="mBotLink"><span>🔗</span>Ссылка на бота</button>
+    </div>
+    <div class="seg">${[['schedule', '📅 Записи'], ['add', '➕ Окошки'], ['clients', '👥 Клиентки']]
+      .map(([k, t]) => `<button class="${S.m.view === k ? 'on' : ''}" data-act="mView" data-v="${k}">${t}</button>`).join('')}</div>
+    <div id="mBody">${renderMBody()}</div>`;
+}
+function renderMBody() { return S.m.view === 'add' ? renderAddForm() : S.m.view === 'clients' ? renderClients() : renderSchedule(); }
+function rerenderMBody() { const b = $('#mBody'); if (b) b.innerHTML = renderMBody(); }
+
+function renderDash() {
+  const now = Date.now(), today = todayMsk();
+  const booked = S.m.slots.filter(s => s.is_booked);
+  const sum = a => a.reduce((x, s) => x + (s.total_price || 0), 0);
+  const tdy = booked.filter(s => s.slot_date === today);
+  const up = booked.filter(s => slotTs(s.slot_date, s.slot_time) >= now);
+  const free = freeFuture();
+  const d30 = booked.filter(s => { const t = slotTs(s.slot_date, s.slot_time); return t < now && t > now - 30 * 864e5; });
+  const came = d30.filter(s => s.attended !== false);
+  const noShow = d30.length - came.length;
+  return `<div class="tiles">
+    <div class="tile accent"><div class="k">Сегодня</div><div class="v">${tdy.length} ${plural(tdy.length, 'запись', 'записи', 'записей')}</div><div class="s">≈ ${rub(sum(tdy))}</div></div>
+    <div class="tile"><div class="k">Все предстоящие</div><div class="v">${up.length}</div><div class="s">на ${rub(sum(up))}</div></div>
+    <div class="tile"><div class="k">Свободных окон</div><div class="v">${free.length}</div><div class="s">${free[0] ? 'ближ.: ' + humanDate(free[0].slot_date) + ', ' + free[0].slot_time : 'добавьте окошки'}</div></div>
+    <div class="tile"><div class="k">За 30 дней</div><div class="v">${rub(sum(came))}</div><div class="s">${came.length} ${plural(came.length, 'визит', 'визита', 'визитов')}${noShow ? ` · неявок: ${noShow}` : ''}</div></div>
+  </div>`;
+}
+
+/* ─── Список записей/окон ─── */
+function renderSchedule() {
+  const f = [['all', 'Все'], ['free', 'Свободные'], ['busy', 'Занятые'], ['past', 'Прошедшие']];
+  return `<input class="input search" id="mSearch" type="search" placeholder="🔎 Поиск по имени или телефону" value="${h(S.m.q)}">
+    <div class="chips">${f.map(([k, t]) => `<button class="chip ${S.m.filter === k ? 'on' : ''}" data-act="mFilter" data-v="${k}">${t}</button>`).join('')}</div>
+    <div id="mList">${scheduleList()}</div>`;
+}
+function scheduleList() {
+  const now = Date.now(), today = todayMsk();
+  const q = S.m.q.trim().toLowerCase(), qd = digits(q);
+  let list = S.m.slots.filter(s => {
+    const t = slotTs(s.slot_date, s.slot_time);
+    if (S.m.filter === 'past') return s.is_booked && t < now && t > now - 45 * 864e5;
+    if (s.slot_date < today) return false;
+    if (S.m.filter === 'free') return !s.is_booked && t > now;
+    if (S.m.filter === 'busy') return s.is_booked;
+    return true;
+  });
+  if (q) list = list.filter(s => (s.client_name || '').toLowerCase().includes(q)
+    || (qd.length >= 3 && digits(s.client_phone).includes(qd))
+    || (s.client_tg_username || '').toLowerCase().includes(q.replace('@', '')));
+  if (S.m.filter === 'past') list = list.slice().reverse();
+  if (!list.length) {
+    return q ? emptyState('🔍', 'Ничего не найдено')
+      : S.m.filter === 'past' ? emptyState('🗂', 'Прошедших записей пока нет')
+      : emptyState('🗓', 'Окошек нет', 'Добавьте их во вкладке «➕ Окошки»');
+  }
+  let out = '', cur = '';
+  for (const s of list) {
+    if (s.slot_date !== cur) { cur = s.slot_date; const rd = relDay(cur); out += `<div class="date-h">${rd ? rd + ' · ' : ''}${h(humanDay(cur))}</div>`; }
+    out += slotCard(s);
+  }
+  return out;
+}
+function rerenderList() { const l = $('#mList'); if (l) l.innerHTML = scheduleList(); }
+
+function slotCard(s) {
+  const open = S.m.openId === s.id;
+  const past = slotTs(s.slot_date, s.slot_time) < Date.now();
+  const isNew = s.is_booked && s.booked_at && Date.parse(s.booked_at) > S.m.prevSeen;
+  const att = s.attended === true ? ' ✅' : s.attended === false ? ' ❌' : '';
+  const head = `<button class="slot-h" data-act="mToggle" data-id="${s.id}" aria-expanded="${open}">
+    <span class="t">${h(s.slot_time)}</span>
+    <span class="m">${s.is_booked
+      ? `<div><b>${h(s.client_name || 'Без имени')}</b>${att}</div><div class="hint">${h(svcLine(s))} · ${rub(s.total_price)}</div>`
+      : `<div class="hint">${past ? 'Прошло, не занято' : 'Свободное окно'}</div>`}</span>
+    ${isNew ? '<span class="pill new">NEW</span>' : ''}
+    <span class="pill ${s.is_booked ? 'busy' : 'free'}">${s.is_booked ? 'занято' : 'свободно'}</span>
+    <span class="chev">${open ? '▲' : '▼'}</span></button>`;
+  if (!open) return `<div class="slot ${past && !s.is_booked ? 'past' : ''}">${head}</div>`;
+  return `<div class="slot open">${head}<div class="slot-b">${s.is_booked ? bookedBody(s) : freeBody(s)}${noteBlock(s)}</div></div>`;
+}
+
+function bookedBody(s) {
+  const opts = freeFuture().filter(x => x.id !== s.id)
+    .map(x => `<option value="${x.id}">${h(humanDate(x.slot_date))} (${WD[dp(x.slot_date).wd]}), ${h(x.slot_time)}</option>`).join('');
+  const canTg = s.client_tg_username || s.client_tg_id;
+  return `
+    <div class="kv" style="margin-top:6px">📞 ${s.client_phone ? `<a href="${phoneHref(s.client_phone)}">${h(s.client_phone)}</a>` : '—'}${s.client_tg_username ? ` · @${h(s.client_tg_username)}` : ''}</div>
+    <div class="kv">💫 ${h(svcLine(s))} · <b>${rub(s.total_price)}</b></div>
+    ${s.notes ? `<div class="kv">📝 ${h(s.notes)}</div>` : ''}
+    ${s.source ? `<div class="kv">📣 Откуда узнала: ${h(s.source)}</div>` : ''}
+    ${s.booked_at ? `<div class="kv hint">🕓 Запись создана ${fmtDT(s.booked_at)}${s.client_tg_id ? ' через бота' : ' вручную'}</div>` : ''}
+    <div class="row">
+      <button class="btn sm ${s.attended === true ? 'ok-solid' : 'secondary'}" data-act="mAtt" data-id="${s.id}" data-v="1">✅ Пришла</button>
+      <button class="btn sm ${s.attended === false ? 'danger-solid' : 'secondary'}" data-act="mAtt" data-id="${s.id}" data-v="0">❌ Не пришла</button>
+    </div>
+    <div class="row">
+      <button class="btn sm secondary" data-act="mRemind" data-id="${s.id}">🔔 Напомнить</button>
+      <button class="btn sm secondary" data-act="mCorr" data-id="${s.id}">💌 На коррекцию</button>
+      ${canTg ? `<button class="btn sm secondary" data-act="mTg" data-id="${s.id}">💬 Telegram</button>` : ''}
+    </div>
+    <div class="transfer">
+      <select class="input" id="tr-${s.id}" ${opts ? '' : 'disabled'}>${opts ? '<option value="">🔄 Перенести на…</option>' + opts : '<option>Нет свободных окон для переноса</option>'}</select>
+      <button class="btn sm" data-act="mTransfer" data-id="${s.id}" ${opts ? '' : 'disabled'}>Перенести</button>
+    </div>
+    <div class="row">
+      <button class="btn sm ghost" data-act="mRelease" data-id="${s.id}">Освободить окно</button>
+      <button class="btn sm danger" data-act="mDelete" data-id="${s.id}">Удалить</button>
+    </div>`;
+}
+
+function freeBody(s) {
+  const formOpen = S.m.bookFormId === s.id;
+  return `${formOpen ? `<div class="mbook">
+      <div class="field"><input class="input" id="mbName" placeholder="Имя клиентки" maxlength="60"></div>
+      <div class="field"><input class="input js-phone" id="mbPhone" type="tel" inputmode="tel" placeholder="+7 (___) ___-__-__"></div>
+      <div class="field two">
+        <select class="input" id="mbSvc">${SERVICES.map(o => `<option value="${o.id}">${h(o.name)} · ${rub(o.price)}</option>`).join('')}</select>
+        <select class="input" id="mbAdd">${ADDONS.map(o => `<option value="${o.id}">${h(o.name)}${o.price ? ' +' + rub(o.price) : ''}</option>`).join('')}</select>
+      </div>
+      <div class="field"><input class="input" id="mbNotes" placeholder="Комментарий (необязательно)" maxlength="500"></div>
+      <div class="row"><button class="btn secondary" data-act="mBookClose">Отмена</button><button class="btn" data-act="mBookSave" data-id="${s.id}">Записать</button></div>
+    </div>` : ''}
+    <div class="row">
+      ${formOpen ? '' : `<button class="btn sm" data-act="mBookOpen" data-id="${s.id}">+ Записать вручную</button>`}
+      <button class="btn sm danger" data-act="mDelete" data-id="${s.id}">Удалить</button>
+    </div>`;
+}
+
+function noteBlock(s) {
+  return `<details class="note" ${s.master_notes ? 'open' : ''}>
+    <summary>🗒 Заметка мастера${s.master_notes ? '' : ' (добавить)'}</summary>
+    <textarea class="input" id="note-${s.id}" maxlength="500" placeholder="Например: изгиб D, длина 11 мм, чувствительные глаза">${h(s.master_notes || '')}</textarea>
+    <button class="btn sm secondary" data-act="mNote" data-id="${s.id}">Сохранить заметку</button>
+  </details>`;
+}
+
+/* ─── Добавление окошек ─── */
+const normTime = t => { const m = String(t).trim().replace(/[.\-]/, ':').match(/^([01]?\d|2[0-3]):([0-5]\d)$/); return m ? m[1].padStart(2, '0') + ':' + m[2] : null; };
+function addPlan() {
+  const manual = S.m.addManual.split(/[,;\s]+/).filter(Boolean);
+  const bad = manual.filter(t => !normTime(t));
+  const times = [...new Set([...S.m.addTimes, ...manual.map(normTime).filter(Boolean)])].sort();
+  const base = S.m.addDate || todayMsk();
+  let dates = [base];
+  if (S.m.addRepeat === 'd7') dates = [0, 1, 2, 3, 4, 5, 6].map(i => addDays(base, i));
+  else { const n = Number(S.m.addRepeat) || 0; for (let i = 1; i <= n; i++) dates.push(addDays(base, 7 * i)); }
+  return { dates, times, bad };
+}
+function addPreview() {
+  const { dates, times, bad } = addPlan();
+  let s = times.length
+    ? `Будет добавлено до <b>${dates.length * times.length}</b> ${plural(dates.length * times.length, 'окна', 'окон', 'окон')}: ${times.join(', ')} — ${dates.length === 1 ? h(humanDay(dates[0])) : `${dates.length} ${plural(dates.length, 'день', 'дня', 'дней')}, с ${h(humanDate(dates[0]))} по ${h(humanDate(dates[dates.length - 1]))}`}`
+    : 'Выберите время шаблоном или введите вручную';
+  if (bad.length) s += `<br><span style="color:var(--danger)">Не понял: ${h(bad.join(', '))} — формат ЧЧ:ММ</span>`;
+  return s;
+}
+function renderAddForm() {
+  const all = CONFIG.TEMPLATE_TIMES.every(t => S.m.addTimes.has(t));
+  const busyDates = new Set(S.m.slots.filter(s => s.slot_date === S.m.addDate).map(s => s.slot_time));
+  return `<div class="card">
+    <div class="field"><label class="lbl" for="aDate">Дата</label>
+      <input class="input" type="date" id="aDate" value="${S.m.addDate}" min="${todayMsk()}"></div>
+    ${busyDates.size ? `<div class="hint" style="margin:-4px 0 10px">Уже есть на эту дату: ${[...busyDates].sort().join(', ')}</div>` : ''}
+    <label class="lbl">Шаблоны</label>
+    <div class="chips">
+      ${CONFIG.TEMPLATE_TIMES.map(t => `<button class="chip ${S.m.addTimes.has(t) ? 'on' : ''}" data-act="aTpl" data-t="${t}">${t}</button>`).join('')}
+      <button class="chip ${all ? 'on' : ''}" data-act="aAll">Весь день: ${CONFIG.TEMPLATE_TIMES.join(', ')}</button>
+    </div>
+    <div class="field"><label class="lbl" for="aManual">Или вручную через запятую</label>
+      <input class="input" id="aManual" placeholder="11:00, 15:30" value="${h(S.m.addManual)}" inputmode="text"></div>
+    <div class="field"><label class="lbl" for="aRepeat">Повторить</label>
+      <select class="input" id="aRepeat">
+        ${[['0', 'Только эту дату'], ['1', '+ ещё 1 неделю (тот же день недели)'], ['2', '+ ещё 2 недели'], ['3', '+ ещё 3 недели'], ['4', '+ ещё 4 недели'], ['d7', 'Каждый день, 7 дней подряд']]
+          .map(([v, t]) => `<option value="${v}" ${S.m.addRepeat === v ? 'selected' : ''}>${t}</option>`).join('')}
+      </select></div>
+    <div class="hint" id="aPreview" style="margin-bottom:12px">${addPreview()}</div>
+    <button class="btn block big" data-act="aAdd">Добавить окошки</button>
+    <p class="hint center" style="margin:10px 0 0">Дубликаты пропускаются автоматически</p>
+  </div>`;
+}
+
+/* ─── База клиенток ─── */
+function clientsAgg() {
+  const map = new Map(), now = Date.now();
+  for (const s of S.m.slots) {                       // слоты уже отсортированы по дате ↑
+    if (!s.is_booked) continue;
+    const key = digits(s.client_phone) || (s.client_tg_id ? 'tg' + s.client_tg_id : 'n' + (s.client_name || '').toLowerCase());
+    let c = map.get(key);
+    if (!c) { c = { key, visits: 0, noShow: 0, spent: 0, last: null, next: null, note: '' }; map.set(key, c); }
+    Object.assign(c, { name: s.client_name || c.name, phone: s.client_phone || c.phone,
+      username: s.client_tg_username || c.username, tgId: s.client_tg_id || c.tgId });
+    if (s.master_notes) c.note = s.master_notes;
+    const t = slotTs(s.slot_date, s.slot_time);
+    if (t < now) {
+      if (s.attended === false) c.noShow++;
+      else { c.visits++; c.spent += s.total_price || 0; c.last = { t, d: s.slot_date, svc: s.service_name }; }
+    } else if (!c.next) c.next = { t, d: s.slot_date, time: s.slot_time };
+  }
+  return [...map.values()].sort((a, b) => ((b.next && b.next.t) || (b.last && b.last.t) || 0) - ((a.next && a.next.t) || (a.last && a.last.t) || 0));
+}
+const needsCorrection = c => !c.next && c.last && (Date.now() - c.last.t) > 18 * 864e5 && (Date.now() - c.last.t) < 60 * 864e5;
+
+function renderClients() {
+  return `<input class="input search" id="cSearch" type="search" placeholder="🔎 Имя или телефон" value="${h(S.m.cq)}">
+    <div class="chips">
+      <button class="chip ${S.m.cfilter === 'all' ? 'on' : ''}" data-act="cFilter" data-v="all">Все</button>
+      <button class="chip ${S.m.cfilter === 'corr' ? 'on' : ''}" data-act="cFilter" data-v="corr">⏰ Пора на коррекцию</button>
+    </div>
+    <div id="cList">${clientsList()}</div>`;
+}
+function clientsList() {
+  const q = S.m.cq.trim().toLowerCase(), qd = digits(q);
+  let list = clientsAgg();
+  if (S.m.cfilter === 'corr') list = list.filter(needsCorrection);
+  if (q) list = list.filter(c => (c.name || '').toLowerCase().includes(q) || (qd.length >= 3 && digits(c.phone).includes(qd)));
+  if (!list.length) return S.m.cfilter === 'corr' ? emptyState('✨', 'Всех вовремя пригласили') : emptyState('👥', q ? 'Никого не нашла' : 'Клиенток пока нет', q ? '' : 'Они появятся после первых записей');
+  return `<div class="hint" style="margin:0 4px 8px">${list.length} ${plural(list.length, 'клиентка', 'клиентки', 'клиенток')}</div>` + list.map(c => `
+    <div class="client">
+      <div class="top"><b>${h(c.name || 'Без имени')}</b>${needsCorrection(c) ? '<span class="pill warn">пора на коррекцию</span>' : ''}${c.next ? '<span class="pill busy">записана</span>' : ''}</div>
+      <div class="kv">📞 ${c.phone ? `<a href="${phoneHref(c.phone)}">${h(c.phone)}</a>` : '—'}${c.username ? ` · @${h(c.username)}` : ''}</div>
+      <div class="stats">Визитов: <b>${c.visits}</b> · потрачено ${rub(c.spent)}${c.noShow ? ` · <span style="color:var(--danger)">неявок: ${c.noShow}</span>` : ''}</div>
+      ${c.last ? `<div class="stats">Последний визит: ${h(humanDate(c.last.d))} (${h(c.last.svc || '')})</div>` : ''}
+      ${c.next ? `<div class="stats">Следующий: <b>${h(humanDate(c.next.d))}, ${h(c.next.time)}</b></div>` : ''}
+      ${c.note ? `<div class="stats">🗒 ${h(c.note)}</div>` : ''}
+      <div class="row">
+        ${c.last ? `<button class="btn sm secondary" data-act="cCorr" data-key="${h(c.key)}">💌 Пригласить</button>` : ''}
+        ${c.username || c.tgId ? `<button class="btn sm secondary" data-act="cTg" data-key="${h(c.key)}">💬 Telegram</button>` : ''}
+      </div>
+    </div>`).join('');
+}
+
+/* ─── Тексты для копирования ─── */
+function remindText(s) {
+  const rd = relDay(s.slot_date).toLowerCase();
+  return `Здравствуйте${s.client_name ? ', ' + s.client_name : ''}! 🌸\n`
+    + `Напоминаю, что вы записаны на наращивание ресниц${s.service_name ? ` (${s.service_name})` : ''} — ${rd ? rd + ', ' : ''}${humanDate(s.slot_date)} в ${s.slot_time}.\n`
+    + `📍 ${CONFIG.ADDRESS} (${CONFIG.METRO})\n`
+    + `Пожалуйста, приходите без макияжа глаз 💗\nЕсли планы изменились — напишите мне, пожалуйста.`;
+}
+function corrText(name, fromDate) {
+  return `${name ? name + ', здравствуйте' : 'Здравствуйте'}! 💗\n`
+    + `Прошло почти 3 недели после наращивания — самое время для коррекции, чтобы реснички снова были пышными ✨\n`
+    + `Удобно будет около ${humanDate(addDays(fromDate, 21))}?\n`
+    + `Записаться онлайн можно здесь: https://t.me/${CONFIG.BOT_USERNAME} 🌸`;
+}
+function storiesText() {
+  const lim = Date.now() + 60 * 60e3, end = addDays(todayMsk(), 14);
+  const free = S.m.slots.filter(s => !s.is_booked && slotTs(s.slot_date, s.slot_time) > lim && s.slot_date <= end);
+  if (!free.length) return '';
+  const byDay = {};
+  free.forEach(s => { (byDay[s.slot_date] = byDay[s.slot_date] || []).push(s.slot_time); });
+  const lines = Object.keys(byDay).sort().map(d => { const p = dp(d); return `📅 ${p.dd} ${MONTHS[p.m - 1]} (${WD[p.wd]}) — ${byDay[d].join(' · ')}`; });
+  const minPrice = Math.min(...SERVICES.filter(s => !s.noAddons).map(s => s.price));
+  return `✨ Свободные окошки на ресницы ✨\n\n${lines.join('\n')}\n\n`
+    + `📍 ${CONFIG.ADDRESS_SHORT} (${CONFIG.METRO})\n💗 Классика и объёмы 2D–4D, от ${rub(minPrice)}\n`
+    + `👉 Онлайн-запись в 2 клика: t.me/${CONFIG.BOT_USERNAME}`;
+}
+
+/* ─── Действия мастера ─── */
+const mSlot = id => S.m.slots.find(s => s.id === id);
+async function mDo(action, payload, okMsg) {
+  try {
+    const r = await api(action, payload);
+    if (okMsg) { hap('success'); toast(typeof okMsg === 'function' ? okMsg(r) : okMsg); }
+    await loadMaster(true);
+    loadSlots(true);
+    return r;
+  } catch (e) {
+    toastErr(e);
+    if (['SLOT_TAKEN', 'NOT_FOUND', 'FROM_NOT_BOOKED'].includes(e.message)) loadMaster(true);
+    return null;
+  }
+}
+
+/* ═══════════════════ ОБРАБОТЧИКИ (делегирование) ═══════════════════ */
+const ACTIONS = {
+  // клиент
+  svc: el => {
+    const first = !S.service; S.service = el.dataset.id; hap('select');
+    renderServices(); renderAddons(); renderStep4();
+    if (first && !S.slotId) setTimeout(() => $(svcById(S.service).noAddons ? '#step3' : '#step2').scrollIntoView({ behavior: 'smooth', block: 'start' }), 120);
+  },
+  addon: el => { S.addon = el.dataset.id; hap('select'); renderAddons(); renderStep4(); },
+  day: el => { S.day = el.dataset.d; hap('select'); renderSlots(); },
+  slot: el => {
+    S.slotId = Number(el.dataset.id); hap('medium');
+    renderSlots(); renderStep4();
+    if (!S.service) toast('Отлично! Теперь выберите услугу ↑');
+    setTimeout(() => $('#step4').scrollIntoView({ behavior: 'smooth', block: 'start' }), 120);
+  },
+  toStep1: () => $('#step1').scrollIntoView({ behavior: 'smooth' }),
+  submit: () => submitBooking(),
+  reloadSlots: () => { S.slotsError = false; renderSlots(); loadSlots(); },
+  cancelMine: el => cancelMine(Number(el.dataset.id)),
+  ics: el => { const b = findBooking(Number(el.dataset.id)); if (b) openExternal(icsUrl(b)); },
+  gcal: el => { const b = findBooking(Number(el.dataset.id)); if (b) openExternal(gcalUrl(b)); },
+  map: () => openExternal(CONFIG.MAP_URL),
+  writeMaster: () => writeMaster(),
+  phoneFromTg: () => requestPhoneFromTg(),
+  policy: () => showPolicy(),
+  closeSheet: () => closeSheet(null),
+  tab: el => switchTab(el.dataset.tab),
+
+  // мастер
+  mReload: () => { S.m.error = false; loadMaster(); loadSlots(true); hap('light'); },
+  mView: el => { S.m.view = el.dataset.v; hap('select'); renderMaster(); },
+  mFilter: el => { S.m.filter = el.dataset.v; S.m.openId = null; hap('select'); rerenderMBody(); },
+  mToggle: el => { const id = Number(el.dataset.id); S.m.openId = S.m.openId === id ? null : id; S.m.bookFormId = null; hap('light'); rerenderList(); },
+  mStories: () => { const t = storiesText(); t ? copyText(t, 'Текст для сторис скопирован ✓') : toast('Свободных окошек на 2 недели нет', 'err'); },
+  mCsv: async () => { toast('Готовлю файл…'); const r = await mDo('export_csv', {}); if (r) { hap('success'); toast(`📥 Файл (${r.count} записей) отправлен в чат с ботом`); } },
+  mBotLink: () => copyText('https://t.me/' + CONFIG.BOT_USERNAME, 'Ссылка на бота скопирована ✓'),
+  mAtt: el => {
+    const s = mSlot(Number(el.dataset.id)); if (!s) return;
+    const v = el.dataset.v === '1';
+    mDo('set_attended', { id: s.id, value: s.attended === v ? null : v }, s.attended === v ? 'Отметка снята' : v ? 'Отмечено: пришла ✅' : 'Отмечено: не пришла');
+  },
+  mRemind: el => { const s = mSlot(Number(el.dataset.id)); if (s) copyText(remindText(s), 'Текст напоминания скопирован ✓'); },
+  mCorr: el => { const s = mSlot(Number(el.dataset.id)); if (s) copyText(corrText(s.client_name, s.slot_date), 'Приглашение на коррекцию скопировано ✓'); },
+  mTg: el => { const s = mSlot(Number(el.dataset.id)); if (s) openUserChat(s.client_tg_username, s.client_tg_id); },
+  mTransfer: async el => {
+    const s = mSlot(Number(el.dataset.id)); const toId = Number($('#tr-' + el.dataset.id).value);
+    if (!s || !toId) return toast('Выберите новое время', 'err');
+    const to = mSlot(toId);
+    if (!await confirmDlg(`Перенести ${s.client_name || 'запись'}: ${humanDate(s.slot_date)} ${s.slot_time} → ${humanDate(to.slot_date)} ${to.slot_time}?`, 'Перенести')) return;
+    S.m.openId = toId;
+    mDo('transfer', { fromId: s.id, toId }, r => r.notified ? 'Перенесено ✓ Клиентке ушло уведомление' : 'Перенесено ✓');
+  },
+  mRelease: async el => {
+    const s = mSlot(Number(el.dataset.id)); if (!s) return;
+    if (!await confirmDlg(`Освободить окно ${humanDate(s.slot_date)} ${s.slot_time}? Данные клиентки из этой записи будут удалены.`, 'Освободить', true)) return;
+    mDo('release', { id: s.id }, 'Окно освобождено');
+  },
+  mDelete: async el => {
+    const s = mSlot(Number(el.dataset.id)); if (!s) return;
+    if (!await confirmDlg(`Удалить ${s.is_booked ? 'запись' : 'окно'} ${humanDate(s.slot_date)} ${s.slot_time}${s.is_booked ? ' (' + (s.client_name || '') + ')' : ''}?`, 'Удалить', true)) return;
+    S.m.openId = null;
+    mDo('delete_slot', { id: s.id }, 'Удалено');
+  },
+  mBookOpen: el => { S.m.bookFormId = Number(el.dataset.id); rerenderList(); setTimeout(() => { const i = $('#mbName'); if (i) i.focus(); }, 50); },
+  mBookClose: () => { S.m.bookFormId = null; rerenderList(); },
+  mBookSave: el => {
+    const name = $('#mbName').value.trim(), phone = $('#mbPhone').value;
+    if (!name) return fieldErr('#mbName', 'Укажите имя');
+    if (digits(phone).length !== 11) return fieldErr('#mbPhone', 'Введите телефон полностью');
+    const svc = svcById($('#mbSvc').value);
+    S.m.bookFormId = null;
+    mDo('master_book', { slotId: Number(el.dataset.id), name, phone, service: svc.id, addon: svc.noAddons ? null : $('#mbAdd').value, notes: $('#mbNotes').value }, 'Записано ✓');
+  },
+  mNote: el => { const id = Number(el.dataset.id); mDo('set_note', { id, text: $('#note-' + id).value }, 'Заметка сохранена'); },
+  aTpl: el => { const t = el.dataset.t; S.m.addTimes.has(t) ? S.m.addTimes.delete(t) : S.m.addTimes.add(t); hap('select'); rerenderMBody(); },
+  aAll: () => { const all = CONFIG.TEMPLATE_TIMES.every(t => S.m.addTimes.has(t)); CONFIG.TEMPLATE_TIMES.forEach(t => all ? S.m.addTimes.delete(t) : S.m.addTimes.add(t)); hap('select'); rerenderMBody(); },
+  aAdd: async () => {
+    const { dates, times, bad } = addPlan();
+    if (bad.length) return toast('Исправьте время: ' + bad.join(', '), 'err');
+    if (!times.length) return toast('Выберите хотя бы одно время', 'err');
+    const r = await mDo('add_slots', { dates, times });
+    if (r) {
+      hap('success');
+      toast(`Добавлено: ${r.added}${r.skipped ? ` · дублей пропущено: ${r.skipped}` : ''} ✓`);
+      S.m.addTimes.clear(); S.m.addManual = ''; rerenderMBody();
+    }
+  },
+  cFilter: el => { S.m.cfilter = el.dataset.v; hap('select'); rerenderMBody(); },
+  cCorr: el => { const c = clientsAgg().find(x => x.key === el.dataset.key); if (c && c.last) copyText(corrText(c.name, c.last.d), 'Приглашение скопировано ✓'); },
+  cTg: el => { const c = clientsAgg().find(x => x.key === el.dataset.key); if (c) openUserChat(c.username, c.tgId); },
+};
+
+document.addEventListener('click', e => {
+  const sh = e.target.closest('[data-sheet]');
+  if (sh) { e.preventDefault(); closeSheet(sh.dataset.sheet); return; }
+  const el = e.target.closest('[data-act]');
+  if (!el || el.disabled) return;
+  const fn = ACTIONS[el.dataset.act];
+  if (fn) { if (el.tagName === 'A') e.preventDefault(); fn(el, e); }
+});
+
+document.addEventListener('input', e => {
+  const t = e.target;
+  if (t.classList.contains('js-phone')) t.value = maskPhone(t.value, e.inputType);
+  if (t.id === 'mSearch') { S.m.q = t.value; rerenderList(); }
+  if (t.id === 'cSearch') { S.m.cq = t.value; const l = $('#cList'); if (l) l.innerHTML = clientsList(); }
+  if (t.id === 'aManual') { S.m.addManual = t.value; $('#aPreview').innerHTML = addPreview(); }
+});
+document.addEventListener('change', e => {
+  const t = e.target;
+  if (t.id === 'aDate') { S.m.addDate = t.value || todayMsk(); rerenderMBody(); }
+  if (t.id === 'aRepeat') { S.m.addRepeat = t.value; $('#aPreview').innerHTML = addPreview(); }
+});
+
+// Клавиатура на мобильных: держим активное поле в зоне видимости
+function keepFocusedVisible() {
+  const a = document.activeElement;
+  if (a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)) a.scrollIntoView({ block: 'center', behavior: 'smooth' });
+}
+document.addEventListener('focusin', () => setTimeout(keepFocusedVisible, 300));
+
+/* ═══════════════════ ЗАПУСК ═══════════════════ */
+function applyTheme() {
+  document.documentElement.dataset.scheme = (tg && tg.colorScheme) || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+  if (inTg && ver('6.1')) { try { tg.setHeaderColor('secondary_bg_color'); tg.setBackgroundColor('secondary_bg_color'); } catch (e) {} }
+}
+
+function init() {
+  // Telegram
+  if (tg) {
+    tg.ready(); tg.expand();
+    if (ver('7.7')) { try { tg.disableVerticalSwipes(); } catch (e) {} }   // форма не закрывается свайпом вниз
+    tg.MainButton.onClick(submitBooking);
+    if (ver('6.1')) tg.BackButton.onClick(onBack);
+    tg.onEvent('themeChanged', applyTheme);
+    tg.onEvent('viewportChanged', ev => { if (!ev || ev.isStateStable) keepFocusedVisible(); });
+  }
+  applyTheme();
+
+  // Статика
+  $('#addr').textContent = CONFIG.ADDRESS;
+  $('#metro').textContent = CONFIG.METRO;
+  $('#fSource').innerHTML = '<option value="">— выбрать —</option>' + SOURCES.map(s => `<option>${h(s)}</option>`).join('');
+  if (tgUser && tgUser.first_name) $('#hello').textContent = `Привет, ${tgUser.first_name} 🌸`;
+  if (!inTg) {
+    $('#notTg').hidden = false;
+    $('#botLink').href = 'https://t.me/' + CONFIG.BOT_USERNAME;
+    $('#botLink').textContent = '@' + CONFIG.BOT_USERNAME;
+  }
+  if (inTg && ver('6.9')) $('#phoneFromTg').hidden = false;
+  if (lsGet(LS.seen) === null) lsSet(LS.seen, Date.now());
+
+  renderServices(); renderAddons(); loadProfile();
+
+  // Мгновенный старт из кеша, затем свежие данные
+  const cache = lsGet(LS.slots);
+  if (cache && cache.day === todayMsk() && Array.isArray(cache.slots)) { S.slots = cache.slots; S.slotsLoaded = true; }
+  renderSlots(); renderStep4();
+  loadSlots();
+  loadMe();
+  if (S.isMaster) { showNav(); loadMaster(true); }
+
+  // Автообновление расписания: раз в минуту и при возврате в приложение
+  setInterval(() => { if (!document.hidden) { loadSlots(true); renderMine(); } }, 60e3);
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) return;
+    loadSlots(true); loadMe();
+    if (S.isMaster) loadMaster(true);
+  });
+}
+init();
+</script>
+</body>
+</html>
